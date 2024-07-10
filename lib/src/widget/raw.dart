@@ -12,7 +12,6 @@ typedef MenuBuilder = Widget Function(
 
 typedef BarrierBuilder = Widget? Function(
   BuildContext context,
-  VoidCallback onTap,
 );
 
 enum MenuPosition {
@@ -49,10 +48,7 @@ class _RawFlexDropDownState extends State<RawFlexDropDown> {
 
   @override
   Widget build(BuildContext context) {
-    final barrier = widget.barrierBuilder?.call(
-      context,
-      () => widget.controller.hide(),
-    );
+    final barrier = widget.barrierBuilder?.call(context);
     return CompositedTransformTarget(
       link: _link,
       child: OverlayPortal(
