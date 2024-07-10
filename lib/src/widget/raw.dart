@@ -10,6 +10,11 @@ typedef MenuBuilder = Widget Function(
   double? width,
 );
 
+typedef BarrierBuilder = Widget? Function(
+  BuildContext context,
+  VoidCallback onTap,
+);
+
 enum MenuPosition {
   top,
   bottom,
@@ -21,6 +26,7 @@ class RawFlexDropDown extends StatefulWidget {
     required this.controller,
     required this.buttonBuilder,
     required this.menuBuilder,
+    this.barrierBuilder,
     this.menuPosition = MenuPosition.bottom,
   });
 
@@ -29,6 +35,7 @@ class RawFlexDropDown extends StatefulWidget {
   final ButtonBuilder buttonBuilder;
   final MenuBuilder menuBuilder;
   final MenuPosition menuPosition;
+  final BarrierBuilder? barrierBuilder;
 
   @override
   State<RawFlexDropDown> createState() => _RawFlexDropDownState();
@@ -42,19 +49,28 @@ class _RawFlexDropDownState extends State<RawFlexDropDown> {
 
   @override
   Widget build(BuildContext context) {
+    final barrier = widget.barrierBuilder?.call(
+      context,
+      () => widget.controller.hide(),
+    );
     return CompositedTransformTarget(
       link: _link,
       child: OverlayPortal(
         controller: widget.controller,
         overlayChildBuilder: (BuildContext context) {
-          return CompositedTransformFollower(
-            link: _link,
-            targetAnchor: Alignment.bottomLeft,
-            showWhenUnlinked: false,
-            child: Align(
-              alignment: AlignmentDirectional.topStart,
-              child: widget.menuBuilder(context, _buttonWidth),
-            ),
+          return Stack(
+            children: [
+              if (barrier != null) barrier,
+              CompositedTransformFollower(
+                link: _link,
+                targetAnchor: Alignment.bottomLeft,
+                showWhenUnlinked: false,
+                child: Align(
+                  alignment: AlignmentDirectional.topStart,
+                  child: widget.menuBuilder(context, _buttonWidth),
+                ),
+              ),
+            ],
           );
         },
         child: widget.buttonBuilder(context, onTap),
@@ -64,7 +80,6 @@ class _RawFlexDropDownState extends State<RawFlexDropDown> {
 
   void onTap() {
     _buttonWidth = context.size?.width;
-
     widget.controller.toggle();
   }
 }
