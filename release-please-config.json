@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "dart",
+  "include-v-in-tag": false,
+  "include-component-in-tag": false,
+  "bootstrap-sha": "7787ae162089a8ff066c71102b18380ddb44f79f",
+  "last-release-sha": "7787ae162089a8ff066c71102b18380ddb44f79f",
+  "packages": {
+    ".": { "package-name": "flex_dropdown", "changelog-path": "CHANGELOG.md" }
+  }
+}

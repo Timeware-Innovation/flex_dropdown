@@ -1,0 +1,67 @@
+name: CI
+
+# CI "lean" per package singolo (famiglia MO): solo analyze + format check + test.
+# NIENTE build/pubblicazione. Draft-guarded (le PR in draft non consumano minuti).
+# Nessuna dipendenza git privata Timeware: non serve il secret GH_PAT.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Analyze, format, test
+    # Le PR in draft non consumano minuti; il dispatch manuale gira sempre.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Leggi versione Flutter da .fvmrc
+        id: fvmrc
+        run: echo "version=$(jq -r '.flutter' .fvmrc)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvmrc.outputs.version }}
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      # errors-only in v1: info/warning non bloccano (tightening lint = lavoro futuro).
+      # `test/` e' opzionale: non tutti i package della famiglia hanno test.
+      - name: Flutter analyze
+        run: |
+          DIRS="lib"
+          [ -d test ] && DIRS="$DIRS test"
+          flutter analyze --no-fatal-infos --no-fatal-warnings $DIRS
+
+      # Esclude i generati (*.g.dart, *.gform.dart): output di build_runner, non
+      # dart-format-compliant. `dart format` non ha exclude da config -> si filtra.
+      - name: Dart format check
+        run: |
+          DIRS="lib"
+          [ -d test ] && DIRS="$DIRS test"
+          find $DIRS -name '*.dart' \
+            ! -name '*.g.dart' ! -name '*.gform.dart' \
+            -not -path '*/.dart_tool/*' -not -path '*/build/*' -print0 \
+          | xargs -0 --no-run-if-empty dart format --output=none --set-exit-if-changed
+
+      - name: Flutter test (se presente)
+        run: |
+          if [ -n "$(find test -type f -name '*_test.dart' -print -quit 2>/dev/null)" ]; then
+            flutter test
+          else
+            echo "Nessun test (*_test.dart) trovato, salto."
+          fi

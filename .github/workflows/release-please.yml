@@ -1,0 +1,31 @@
+name: release-please
+
+# Versioning automatico: conventional commit su main -> release PR (bump
+# pubspec + CHANGELOG); al merge crea tag + GitHub Release.
+# Componente singolo (root "."): tag repo-wide `X.Y.Z` (senza `v`), stesso
+# schema del tag esistente `0.1.1` (verificato via `git ls-remote --tags`:
+# NON e' namespaced `flex_dropdown/0.1.1`). Task ClickUp 86cb4e868.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Non cancellare un run di release a meta': i tag/Release sono side-effect.
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
